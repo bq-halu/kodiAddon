@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<strings>
+  <string id="100">Configuration</string>
+  <string id="101">Halu Coordinator IP</string>
+  <string id="102">Light intensity on video Pause or Stop</string>
+  <string id="103">Room for effects</string>
+  <string id="104">Mode</string>
+  <string id="105">One zone: full screen</string>
+  <string id="106">Three zones: Left, Center-Up, Right</string>
+  <string id="107">Effects intensity %</string>
+
+</strings>

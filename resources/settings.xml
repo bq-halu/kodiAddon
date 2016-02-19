@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+<settings>
+
+    <setting type="lsep" label="100" />
+    <setting id="haluIp" type="text" label="101" enable="!eq(-1,true)" default="10.0.0.1" />
+    <setting id="idleLight" label="102" type="slider" default="0" range="0,1,100" option="int" />
+    <setting id="playRoom" type="number" label="103" default="0" enable="true" visible="true" />
+    <setting id="mode" type="enum" enable="true" label="104" default="0" lvalues="105|106" />
+    <setting id="effectsIntensity" label="107" type="slider" default="100" range="20,1,100" option="int" />
+
+</settings>
