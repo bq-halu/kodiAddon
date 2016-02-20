@@ -102,6 +102,7 @@ class MyPlayer(xbmc.Player):
 		if self.isPlayingVideo():
 			self.playingvideo = False
 			state_changed("paused", self.duration)
+		h.qq_postSpaceColor()
 
 	def onPlayBackResumed(self):
 		if self.isPlayingVideo():
@@ -119,6 +120,8 @@ class MyPlayer(xbmc.Player):
 			state_changed("stopped", self.duration)
 
 
+
+				
 
 
 
@@ -251,6 +254,7 @@ class Halu:
 	left = []
 	right = []
 	centerUp = []
+	#timeFromPlay = time.time()
 	
 
 	def __init__(self, settings):
@@ -398,6 +402,7 @@ class Halu:
 		#logger.log(urlEffect)
 		#logger.log(data)
 		#logger.log(response)
+		
 		try:
 			response = urllib2.urlopen(req, json.dumps(data))	
 		except Exception as error:
@@ -444,11 +449,10 @@ def run():
 			player = MyPlayer()
 		xbmc.sleep(100)
 		if player.playingvideo:
-			qqthreadCapture.playing = True
+				qqthreadCapture.playing = True
 		else:
 			if qqthreadCapture.playing == True:
 				qqthreadCapture.playing = False
-				xbmc.sleep(200)
 				h.qq_postSpaceColor()
 	logger.log("exiting capture thread")
 	qqthreadCapture.exit = True
