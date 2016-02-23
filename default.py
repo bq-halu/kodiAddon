@@ -129,6 +129,8 @@ class MyPlayer(xbmc.Player):
 
 				
 
+				
+
 
 
 def getAvgColor():
