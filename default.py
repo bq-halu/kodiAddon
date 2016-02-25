@@ -11,6 +11,7 @@ import math
 #import netifaces
 import urllib2
 from threading import Thread
+import socket
 
 
 __addon__      = xbmcaddon.Addon()
@@ -38,10 +39,12 @@ xbmc.log("XBMC Halu service started, version: %s" % get_version())
 
 
 portDiscovery = 1900  # Udp discovery port
-UDP_PORT = 2610
+UDP_PORT = 2345
+UDP_IP = '10.255.255.255'
 localPort = 50123
 
-
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
+sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
 
 player = None
@@ -87,37 +90,58 @@ logger.log("Kodi Halu, version: %s" % get_version())
 
 class MyPlayer(xbmc.Player):
 	duration = 0
-	playingvideo = None
+	playingVideo = None
+	playingAudio = None
 
 	def __init__(self):
 		xbmc.Player.__init__(self)
 	
 	def onPlayBackStarted(self):
 		if self.isPlayingVideo():
-			self.playingvideo = True
+			logger.log("isPlayingVideo")
+			self.playingVideo = True
 			self.duration = self.getTotalTime()
 			state_changed("started", self.duration)
+		if self.isPlayingAudio():
+			logger.log("Start PlayingAudio")
+			self.playingAudio = True
+			logger.log(self.getAvailableAudioStreams())
 
 	def onPlayBackPaused(self):
 		if self.isPlayingVideo():
-			self.playingvideo = False
+			logger.log("isPlayingVideo")
+			self.playingVideo = False
 			state_changed("paused", self.duration)
+		if self.isPlayingAudio():
+			logger.log("isPlayingAudio")
+			self.playingAudio = False
 
 	def onPlayBackResumed(self):
 		if self.isPlayingVideo():
-			self.playingvideo = True
+			logger.log("isPlayingVideo")
+			self.playingVideo = True
 			state_changed("resumed", self.duration)
+		if self.isPlayingAudio():
+			logger.log("isPlayingAudio")
+			self.playingAudio = True
 
 	def onPlayBackStopped(self):
-		if self.playingvideo:
-			self.playingvideo = False
+		if self.playingVideo:
+			logger.log("isPlayingVideo")
+			self.playingVideo = False
 			state_changed("stopped", self.duration)
+		if self.isPlayingAudio():
+			logger.log("isPlayingAudio")
+			self.playingAudio = False
 
 	def onPlayBackEnded(self):
-		if self.playingvideo:
-			self.playingvideo = False
+		if self.playingVideo:
+			logger.log("isPlayingVideo")
+			self.playingVideo = False
 			state_changed("stopped", self.duration)
-
+		if self.isPlayingAudio():
+			logger.log("isPlayingAudio")
+			self.playingAudio = False
 				
 
 
@@ -131,7 +155,7 @@ def getAvgColor():
 			rgbw[x][y] = 0
 
 
-	if player.playingvideo and (h.connected == True):
+	if player.playingVideo and (h.connected == True):
 		capture_width = 32 #100
 		capture_height = int(capture_width / capture.getAspectRatio())
 
@@ -139,20 +163,29 @@ def getAvgColor():
 		hFifth = int(capture_height / 5)
 		hThird = int(capture_height / 3)
 
-
 		capture.capture(capture_width, capture_height, xbmc.CAPTURE_FLAG_CONTINUOUS)
-
+		#capture.capture(capture_width, capture_height)
+		#capture.capture()
+		
 		espera = time.time()
 		while capture.getCaptureState() != xbmc.CAPTURE_STATE_DONE:
-			if not(player.playingvideo):
+			if not(player.playingVideo):
 				return
-			time.sleep(0.001)
+			#time.sleep(0.001)
 			if time.time() - espera > 2:
-				logger.log("estado:" + capture.getCaptureState() + "done:" + xbmc.CAPTURE_STATE_DONE + "working:" + xbmc.CAPTURE_STATE_WORKING + "Failed:" + xbmc.CAPTURE_STATE_FAILED)
+				logger.log("estado:" + str(capture.getCaptureState()) + "done:" + str(xbmc.CAPTURE_STATE_DONE) + "working:" + str(xbmc.CAPTURE_STATE_WORKING) + "Failed:" + str(xbmc.CAPTURE_STATE_FAILED))
 				capture.capture(capture_width, capture_height, xbmc.CAPTURE_FLAG_CONTINUOUS)  
 				logger.log("long waiting for capture done, asking again")
 				espera = time.time()
+		espera = time.time() - espera
+
+		#logger.log("TIEMPO Espera: " + str(espera))
+
+		pix = time.time()
+
 		pixels = capture.getImage()
+
+		pix = time.time() - pix
 
 		p = 0
 		size = int(len(pixels)/4)
@@ -238,6 +271,8 @@ def getAvgColor():
 			rgbw[2][1] = rgbw[2][1] / z3
 			rgbw[2][2] = rgbw[2][2] / z3
 			rgbw[2][3] = min(rgbw[2][0], rgbw[2][1], rgbw[2][2]) / 4
+
+		#logger.log(rgbw[0])
 
 	return 
 
@@ -410,6 +445,27 @@ class Halu:
 		return
 
 
+
+	def qq_sendUDP(self):
+		data = { "method" : "post", "target" : "lamp", "action" : "effect", "data" : { 'steps': [] }}
+
+		j = float(self.settings.effectsIntensity)/100
+
+		if self.settings.mode ==0:
+			data["data"]["steps"].append({'color' : {'components': {'r': rgbw[0][0], 'g': rgbw[0][1], 'b': rgbw[0][2], 'w': rgbw[0][3]}, 'fade' : 0.07, 'intensity' : j},'target': {'id': self.settings.playRoom, 'type': 'spaceUdp'}, 'start_time': 0})
+		else:
+
+			for i in range(len(h.left)):
+				data["data"]["steps"].append({'color' : {'components': {'r': rgbw[0][0], 'g': rgbw[0][1], 'b': rgbw[0][2], 'w': rgbw[0][3]}, 'fade' : 0.07, 'intensity' : j},'target': {'id': h.left[i], 'type': 'lampUdp'}, 'start_time': 0})
+			for i in range(len(h.centerUp)):
+				data["data"]["steps"].append({'color' : {'components': {'r': rgbw[1][0], 'g': rgbw[1][1], 'b': rgbw[1][2], 'w': rgbw[1][3]}, 'fade' : 0.07, 'intensity' : j},'target': {'id': h.centerUp[i], 'type': 'lamp'}, 'start_time': 0})
+			for i in range(len(h.right)):
+				data["data"]["steps"].append({'color' : {'components': {'r': rgbw[2][0], 'g': rgbw[2][1], 'b': rgbw[2][2], 'w': rgbw[2][3]}, 'fade' : 0.07, 'intensity' : j},'target': {'id': h.right[i], 'type': 'lamp'}, 'start_time': 0})
+
+		
+		sock.sendto(str(data), (UDP_IP, UDP_PORT))
+
+
 	def qq_postSpaceColor(self):
 		
 		logger.log("sending space commad for idle state.")
@@ -445,12 +501,20 @@ def run():
 			
 			player = MyPlayer()
 		xbmc.sleep(100)
-		if player.playingvideo:
-				qqthreadCapture.playing = True
+
+		if player.playingVideo:
+				qqthreadCapture.playingVideo = True
+		elif player.playingAudio:
+			qqthreadCapture.playingAudio = True
 		else:
-			if qqthreadCapture.playing == True:
-				qqthreadCapture.playing = False
+			if (qqthreadCapture.playingVideo == True) or (qqthreadCapture.playingAudio == True):
+				qqthreadCapture.playingVideo = False
+				qqthreadCapture.playingAudio = False
 				h.qq_postSpaceColor()
+
+
+
+
 	logger.log("exiting capture thread")
 	qqthreadCapture.exit = True
 	xbmc.sleep(200)
@@ -465,7 +529,9 @@ class loop(Thread):
 	def __init__(self):
 		''' Constructor. '''
 		Thread.__init__(self)
-		self.playing = False
+		self.playingVideo = False
+		self.playingAudio = False
+
 		self.exit = False
 
 	def run(self):
@@ -474,22 +540,27 @@ class loop(Thread):
 		global img
 
 		while not(self.exit) :
-			if self.playing and (h.connected == True):
-
-				waitTime = time.time() - waitTime
-
+			waitTime = time.time() - waitTime
+			if self.playingVideo and (h.connected == True):
 				colorTime = time.time()
 				getAvgColor()
 				colorTime = time.time() -colorTime
 
 				postTime = time.time()
+				#h.qq_sendUDP()
 				h.qq_postEffect()
 				postTime = time.time() - postTime
 
 				seconds = waitTime + colorTime + postTime 
-				logger.log("FPS:{0}".format(1/seconds))#, "waitTime:", waitTime, "ColorTime:", colorTime, "PostTime:", postTime
+				logger.log("FPS:{0}".format(1/seconds) + "waitTime:" + str(waitTime) + "ColorTime:" + str(colorTime) + "PostTime:" + str(postTime))
 
-				waitTime = time.time()
+				
+			elif self.playingAudio and (h.connected == True):
+				logger.log("audio playing")
+				time.sleep(2)
+			waitTime = time.time()
+			xbmc.sleep(5)
+
 
 
 
