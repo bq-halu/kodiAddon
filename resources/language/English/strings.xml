@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <strings>
+  <string id="99">Enable</string>
   <string id="100">Configuration</string>
   <string id="101">Halu Coordinator IP</string>
   <string id="102">Light intensity on video Pause or Stop</string>

@@ -12,6 +12,7 @@ import math
 import urllib2
 from threading import Thread
 import socket
+import collections
 
 
 __addon__      = xbmcaddon.Addon()
@@ -41,6 +42,7 @@ xbmc.log("XBMC Halu service started, version: %s" % get_version())
 portDiscovery = 1900  # Udp discovery port
 UDP_PORT = 2345
 UDP_IP = '10.255.255.255'
+#UDP_IP = '10.0.0.1'
 localPort = 50123
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
@@ -293,7 +295,8 @@ class Halu:
 		#self.discovery()
 
 		self.settings = settings
-		
+		self.connected = False
+
 		self.updateDB()
 		if self.connected:
 			self.qq_postSpaceColor()
@@ -305,15 +308,15 @@ class Halu:
 		
 		database = {}
 		self.settings.readxml()
-
-		logger.log("settings.xml loaded: %s" % self.settings)
-
-		if self.getDatabase():
-			self.connected = True
-			self.loadLamps()			
+		if self.settings.enable:
+			logger.log("settings.xml loaded,\n       %s" % self.settings)
+			if self.getDatabase():
+				self.connected = True
+				self.loadLamps()			
+			else:
+				self.connected = False
 		else:
-			self.connected = False
-
+			logger.log(" Halu disbabled from settings!")
 
 
 	def loadLamps(self):
@@ -400,7 +403,11 @@ class Halu:
 		#logger.log(req.status_code)
 		#logger.log(req.headers)
 		#logger.log(req.content)
-		self.database = json.loads(req.content)
+		try:
+			self.database = json.loads(req.content)
+		except:
+			logger.log("Error getting the Json database.")
+			return False
 		self.lamp_db[:] = []
 		self.lamp_db = self.database["data"]["lamp_db"]
 		#logger.log(lamp_db)
@@ -447,7 +454,7 @@ class Halu:
 
 
 	def qq_sendUDP(self):
-		data = { "method" : "post", "target" : "lamp", "action" : "effect", "data" : { 'steps': [] }}
+		data = collections.OrderedDict((( "method" , "post"), ("target" , "lamp"), ("action", "effect"), ("data", { 'steps': [] })))
 
 		j = float(self.settings.effectsIntensity)/100
 
@@ -458,32 +465,35 @@ class Halu:
 			for i in range(len(h.left)):
 				data["data"]["steps"].append({'color' : {'components': {'r': rgbw[0][0], 'g': rgbw[0][1], 'b': rgbw[0][2], 'w': rgbw[0][3]}, 'fade' : 0.07, 'intensity' : j},'target': {'id': h.left[i], 'type': 'lampUdp'}, 'start_time': 0})
 			for i in range(len(h.centerUp)):
-				data["data"]["steps"].append({'color' : {'components': {'r': rgbw[1][0], 'g': rgbw[1][1], 'b': rgbw[1][2], 'w': rgbw[1][3]}, 'fade' : 0.07, 'intensity' : j},'target': {'id': h.centerUp[i], 'type': 'lamp'}, 'start_time': 0})
+				data["data"]["steps"].append({'color' : {'components': {'r': rgbw[1][0], 'g': rgbw[1][1], 'b': rgbw[1][2], 'w': rgbw[1][3]}, 'fade' : 0.07, 'intensity' : j},'target': {'id': h.centerUp[i], 'type': 'lampUdp'}, 'start_time': 0})
 			for i in range(len(h.right)):
-				data["data"]["steps"].append({'color' : {'components': {'r': rgbw[2][0], 'g': rgbw[2][1], 'b': rgbw[2][2], 'w': rgbw[2][3]}, 'fade' : 0.07, 'intensity' : j},'target': {'id': h.right[i], 'type': 'lamp'}, 'start_time': 0})
+				data["data"]["steps"].append({'color' : {'components': {'r': rgbw[2][0], 'g': rgbw[2][1], 'b': rgbw[2][2], 'w': rgbw[2][3]}, 'fade' : 0.07, 'intensity' : j},'target': {'id': h.right[i], 'type': 'lampUdp'}, 'start_time': 0})
 
 		
-		sock.sendto(str(data), (UDP_IP, UDP_PORT))
+		sock.sendto(json.dumps(data), (UDP_IP, UDP_PORT))
 
 
 	def qq_postSpaceColor(self):
-		
-		logger.log("sending space commad for idle state.")
-		urlEffect = 'http://' + str(self.settings.haluIp) + ':2015/space/' + str(self.settings.playRoom) + '/color'
-		
 
-		data = {'components': {'r': 255, 'g': 255, 'b': 150, 'w': 255}, 'fade' : 1, 'intensity' : float(self.settings.idleLight)/100}
-
-		req = urllib2.Request(urlEffect)
-		req.add_header('Content-Type', 'application/json')
-
-		try:
-			response = urllib2.urlopen(req, json.dumps(data))	
-		except Exception as error:
-			logger.log("fail on POST: %s" % str(error))
-			logger.log("url: %s" % urlEffect)
-			logger.log("data: %s" % data)
+		if self.settings.enable:
 		
+			logger.log("sending space commad for idle state.")
+			urlEffect = 'http://' + str(self.settings.haluIp) + ':2015/space/' + str(self.settings.playRoom) + '/color'
+			
+
+			data = {'components': {'r': 255, 'g': 255, 'b': 150, 'w': 255}, 'fade' : 1, 'intensity' : float(self.settings.idleLight)/100}
+
+			req = urllib2.Request(urlEffect)
+			req.add_header('Content-Type', 'application/json')
+
+			try:
+				response = urllib2.urlopen(req, json.dumps(data))	
+			except Exception as error:
+				logger.log("fail on POST: %s" % str(error))
+				logger.log("url: %s" % urlEffect)
+				logger.log("data: %s" % data)
+		else:
+			logger.log("No space order sent because Halu is disbabled.")
 		return
 
 
@@ -541,14 +551,14 @@ class loop(Thread):
 
 		while not(self.exit) :
 			waitTime = time.time() - waitTime
-			if self.playingVideo and (h.connected == True):
+			if self.playingVideo and (h.connected == True) and h.settings.enable:
 				colorTime = time.time()
 				getAvgColor()
 				colorTime = time.time() -colorTime
 
 				postTime = time.time()
-				#h.qq_sendUDP()
-				h.qq_postEffect()
+				h.qq_sendUDP()
+				#h.qq_postEffect()
 				postTime = time.time() - postTime
 
 				seconds = waitTime + colorTime + postTime 
