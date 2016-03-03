@@ -9,5 +9,12 @@
   <string id="105">One zone: full screen</string>
   <string id="106">Three zones: Left, Center-Up, Right</string>
   <string id="107">Effects intensity %</string>
+  <string id="108">Protocol</string>
+  <string id="109">TCP</string>
+  <string id="110">UDP</string>
+  <string id="111">Delay(ms)</string>
+
+  <string id="200">Basic</string>
+  <string id="201">Advanced</string>  
 
 </strings>

@@ -556,20 +556,23 @@ class loop(Thread):
 				getAvgColor()
 				colorTime = time.time() -colorTime
 
-				postTime = time.time()
-				h.qq_sendUDP()
-				#h.qq_postEffect()
-				postTime = time.time() - postTime
+				sendTime = time.time()
+				if h.settings.protocol == 0:	#0 = TCP, 1 = UDP
+					h.qq_postEffect()
+					logger.log('tcp')
+				else:	
+					h.qq_sendUDP()
+					logger.log('udp')
+				sendTime = time.time() - sendTime
 
-				seconds = waitTime + colorTime + postTime 
-				logger.log("FPS:{0}".format(1/seconds) + "waitTime:" + str(waitTime) + "ColorTime:" + str(colorTime) + "PostTime:" + str(postTime))
-
+				seconds = waitTime + colorTime + sendTime 
+				logger.log("FPS:{0}".format(1/seconds) + "waitTime:" + str(waitTime) + "ColorTime:" + str(colorTime) + "PostTime:" + str(sendTime))
 				
 			elif self.playingAudio and (h.connected == True):
 				logger.log("audio playing")
 				time.sleep(2)
 			waitTime = time.time()
-			xbmc.sleep(5)
+			xbmc.sleep(h.settings.delay)
 
 
 

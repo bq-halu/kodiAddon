@@ -1,12 +1,16 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <settings>
-
-    <setting type="lsep" label="100" />
-    <setting id="enable" type="bool" label="99" default="true" />
-    <setting id="haluIp" type="text" label="101" enable="true" default="10.0.0.1" />
-    <setting id="idleLight" label="102" type="slider" default="20" range="0,1,100" option="int" />
-    <setting id="playRoom" type="number" label="103" default="0" enable="true" visible="true" />
-    <setting id="mode" type="enum" enable="true" label="104" default="0" lvalues="105|106" />
-    <setting id="effectsIntensity" label="107" type="slider" default="100" range="20,1,100" option="int" />
-
+	<category label="200">
+	    <setting type="lsep" label="100" />
+	    <setting id="enable" type="bool" label="99" default="true" />
+	    <setting id="idleLight" label="102" type="slider" default="20" range="0,1,100" option="int" />
+	    <setting id="playRoom" type="number" label="103" default="0" enable="true" visible="true" />
+	    <setting id="mode" type="enum" enable="true" label="104" default="0" lvalues="105|106" />
+	    <setting id="effectsIntensity" label="107" type="slider" default="100" range="20,1,100" option="int" />
+	</category>
+	<category label="201">
+	    <setting id="protocol" type="enum" enable="true" label="108" default="0" lvalues="109|110" />
+	    <setting id="delay" label="111" type="slider" default="35" range="1,5,100" option="int" />
+	    <setting id="haluIp" type="text" label="101" enable="true" default="10.0.0.1" />
+	</category>
 </settings>
