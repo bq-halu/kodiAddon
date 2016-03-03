@@ -42,7 +42,6 @@ xbmc.log("XBMC Halu service started, version: %s" % get_version())
 portDiscovery = 1900  # Udp discovery port
 UDP_PORT = 2345
 UDP_IP = '10.255.255.255'
-#UDP_IP = '10.0.0.1'
 localPort = 50123
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) # UDP
@@ -454,7 +453,9 @@ class Halu:
 
 
 	def qq_sendUDP(self):
-		data = collections.OrderedDict((( "method" , "post"), ("target" , "lamp"), ("action", "effect"), ("data", { 'steps': [] })))
+		#data = collections.OrderedDict((( "method" , "POST"), ("target" , "lamp"), ("action", "effect"), ("data", { 'steps': [] })))
+
+		data = {"method": "POST", "target" : "lamp", "action": "effect", 'data':{'duration': 1, 'priority': 1, 'steps': []}}
 
 		j = float(self.settings.effectsIntensity)/100
 
@@ -469,7 +470,6 @@ class Halu:
 			for i in range(len(h.right)):
 				data["data"]["steps"].append({'color' : {'components': {'r': rgbw[2][0], 'g': rgbw[2][1], 'b': rgbw[2][2], 'w': rgbw[2][3]}, 'fade' : 0.07, 'intensity' : j},'target': {'id': h.right[i], 'type': 'lampUdp'}, 'start_time': 0})
 
-		
 		sock.sendto(json.dumps(data), (UDP_IP, UDP_PORT))
 
 
