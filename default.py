@@ -194,7 +194,7 @@ def getAvgColor():
 		z2 = 0	# 				"					center up
 		z3 = 0	# 				"					right
 
-		if h.settings.mode ==0:	#one zone mode, full screen
+		if h.settings.mode == 0:	#one zone mode, full screen
 			
 			for i in range(size):
 				if fmtRGBA:
@@ -206,11 +206,11 @@ def getAvgColor():
 					g += pixels[p + 1]
 					r += pixels[p + 2]
 				p += 4
-
 			rgbw[0][0] = r / size
 			rgbw[0][1] = g / size
 			rgbw[0][2] = b / size
 			rgbw[0][3] = min(rgbw[0][0], rgbw[0][1], rgbw[0][2]) / 4
+			logger.log("RGB["+ str(r) + ',' + str(g) + ',' + str(b) + '], rgbw[0]='+ str(rgbw[0]) + 'size: ' + str(size) )
 
 		else:
 
@@ -272,6 +272,7 @@ def getAvgColor():
 			rgbw[2][1] = rgbw[2][1] / z3
 			rgbw[2][2] = rgbw[2][2] / z3
 			rgbw[2][3] = min(rgbw[2][0], rgbw[2][1], rgbw[2][2]) / 4
+			logger.log("rgbw="+ str(rgbw) + 'size: ' + str(size) )
 
 		#logger.log(rgbw[0])
 
@@ -404,8 +405,8 @@ class Halu:
 		#logger.log(req.content)
 		try:
 			self.database = json.loads(req.content)
-		except:
-			logger.log("Error getting the Json database.")
+		except Exception as error:
+			logger.log("Error getting the Json database: %s" % str(error))
 			return False
 		self.lamp_db[:] = []
 		self.lamp_db = self.database["data"]["lamp_db"]
@@ -470,7 +471,10 @@ class Halu:
 			for i in range(len(h.right)):
 				data["data"]["steps"].append({'color' : {'components': {'r': rgbw[2][0], 'g': rgbw[2][1], 'b': rgbw[2][2], 'w': rgbw[2][3]}, 'fade' : 0.07, 'intensity' : j},'target': {'id': h.right[i], 'type': 'lampUdp'}, 'start_time': 0})
 
-		sock.sendto(json.dumps(data), (UDP_IP, UDP_PORT))
+		try: 
+			sock.sendto(json.dumps(data), (UDP_IP, UDP_PORT))
+		except Exception as error:
+			logger.log("fail sending udp effect, reason: %s" % str(error))
 
 
 	def qq_postSpaceColor(self):
