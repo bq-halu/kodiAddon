@@ -4,7 +4,7 @@ import xbmcaddon
 import json
 import time
 import sys
-#import colorsys
+import colorsys
 import os
 import datetime
 import math
@@ -58,6 +58,14 @@ fmtRGBA = fmt == 'RGBA'
 
 #rgbw = [[0 for x in xrange(3)] for x in xrange(4)]
 rgbw = [[0,0,0,0],[0,0,0,0],[0,0,0,0]]
+maximo = 0
+
+factorR = float( 255.0 / 200.0 )
+factorV = float( 255.0 / 81.0 )
+factorA = float( 255.0 / 237.0 )
+factorB = float( 255.0 / 36.0 )
+
+
 
 
 
@@ -85,6 +93,28 @@ waitTime = time.time()
 
 
 logger.log("Kodi Halu, version: %s" % get_version())
+
+
+
+
+
+
+def rpiColor(r,g,b):
+
+	bl = min(r, g, b)	#white component
+	
+	rc = r - bl 			#pure color component
+	gc = g - bl
+	bc = b - bl
+
+	bl = bl * factorB
+	r = rc * factorR
+	g = gc * factorV
+	b = bc * factorA
+
+	return int(r + bl), int(g + bl), int(b + bl) 
+
+
 
 
 
@@ -148,7 +178,8 @@ class MyPlayer(xbmc.Player):
 
 
 def getAvgColor():
-	
+	global maximo
+	global player
 	r, g, b, w = 0, 0, 0, 0
 
 	for x in range(3):
@@ -183,9 +214,10 @@ def getAvgColor():
 		#logger.log("TIEMPO Espera: " + str(espera))
 
 		pix = time.time()
-
-		pixels = capture.getImage()
-
+		if player.isPlayingVideo: 
+			pixels = capture.getImage()
+		else:
+			return
 		pix = time.time() - pix
 
 		p = 0
@@ -209,10 +241,15 @@ def getAvgColor():
 			rgbw[0][0] = r / size
 			rgbw[0][1] = g / size
 			rgbw[0][2] = b / size
+			if h.settings.rpi:
+				rgbw[0][0], rgbw[0][1], rgbw[0][2] = rpiColor(rgbw[0][0], rgbw[0][1], rgbw[0][2])
+
 			rgbw[0][3] = min(rgbw[0][0], rgbw[0][1], rgbw[0][2]) / 4
 			logger.log("RGB["+ str(r) + ',' + str(g) + ',' + str(b) + '], rgbw[0]='+ str(rgbw[0]) + 'size: ' + str(size) )
 
 		else:
+			logger.log("capture format: " + fmt)
+
 
 			for i in range(size):
 				if fmtRGBA:
@@ -223,6 +260,13 @@ def getAvgColor():
 					b = pixels[p]
 					g = pixels[p + 1]
 					r = pixels[p + 2]
+				#logger.log('p[' + str(pixels[p]) + ',' + str(pixels[p+1]) + ',' + str(pixels[p+2]) + ',' + str(pixels[p+3]) +']')
+				'''
+				M = max(r,g,b)
+				if M > maximo:
+					maximo = M
+					logger.log('Maximo: ' + str(maximo) + ' Alpha: ' + str(pixels[p+3]))
+				'''
 				p += 4
 
 				cx = i % capture_width
@@ -256,11 +300,18 @@ def getAvgColor():
 					rgbw[2][0] += r
 					rgbw[2][1] += g 	#right
 					rgbw[2][2] += b
-					
-
+			
+			logger.log("rgbw="+ str(rgbw))		
+			if h.settings.rpi:
+				rgbw[0][0], rgbw[0][1], rgbw[0][2] = rpiColor(rgbw[0][0], rgbw[0][1], rgbw[0][2])
+				rgbw[1][0], rgbw[1][1], rgbw[1][2] = rpiColor(rgbw[1][0], rgbw[1][1], rgbw[1][2])
+				rgbw[2][0], rgbw[2][1], rgbw[2][2] = rpiColor(rgbw[2][0], rgbw[2][1], rgbw[2][2])
+			logger.log("RPIrgbw="+ str(rgbw))
 			rgbw[0][0] = rgbw[0][0] / z1
 			rgbw[0][1] = rgbw[0][1] / z1
 			rgbw[0][2] = rgbw[0][2] / z1
+
+
 			rgbw[0][3] = min(rgbw[0][0], rgbw[0][1], rgbw[0][2]) / 4
 
 			rgbw[1][0] = rgbw[1][0] / z2
@@ -272,7 +323,8 @@ def getAvgColor():
 			rgbw[2][1] = rgbw[2][1] / z3
 			rgbw[2][2] = rgbw[2][2] / z3
 			rgbw[2][3] = min(rgbw[2][0], rgbw[2][1], rgbw[2][2]) / 4
-			logger.log("rgbw="+ str(rgbw) + 'size: ' + str(size) )
+
+			logger.log("End values: " + str(rgbw))
 
 		#logger.log(rgbw[0])
 
@@ -296,6 +348,7 @@ class Halu:
 
 		self.settings = settings
 		self.connected = False
+		self.system = None
 
 		self.updateDB()
 		if self.connected:
@@ -411,6 +464,10 @@ class Halu:
 		self.lamp_db[:] = []
 		self.lamp_db = self.database["data"]["lamp_db"]
 		#logger.log(lamp_db)
+		#logger.log("constants.SYSTEM: " + constants.SYSTEM)
+		logger.log("sys.platform: " + sys.platform)
+
+
 		return True
 
 
@@ -441,13 +498,13 @@ class Halu:
 		#logger.log(urlEffect)
 		#logger.log(data)
 		#logger.log(response)
-		
-		try:
-			response = urllib2.urlopen(req, json.dumps(data))	
-		except Exception as error:
-			logger.log("fail on POST: %s" % str(error))
-			logger.log("url: %s" % urlEffect)
-			logger.log("data: %s" % data)
+		if player.isPlayingVideo: 
+			try:
+				response = urllib2.urlopen(req, json.dumps(data))	
+			except Exception as error:
+				logger.log("fail on POST: %s" % str(error))
+				logger.log("url: %s" % urlEffect)
+				logger.log("data: %s" % data)
 		
 		return
 
@@ -470,11 +527,11 @@ class Halu:
 				data["data"]["steps"].append({'color' : {'components': {'r': rgbw[1][0], 'g': rgbw[1][1], 'b': rgbw[1][2], 'w': rgbw[1][3]}, 'fade' : 0.07, 'intensity' : j},'target': {'id': h.centerUp[i], 'type': 'lampUdp'}, 'start_time': 0})
 			for i in range(len(h.right)):
 				data["data"]["steps"].append({'color' : {'components': {'r': rgbw[2][0], 'g': rgbw[2][1], 'b': rgbw[2][2], 'w': rgbw[2][3]}, 'fade' : 0.07, 'intensity' : j},'target': {'id': h.right[i], 'type': 'lampUdp'}, 'start_time': 0})
-
-		try: 
-			sock.sendto(json.dumps(data), (UDP_IP, UDP_PORT))
-		except Exception as error:
-			logger.log("fail sending udp effect, reason: %s" % str(error))
+		if player.isPlayingVideo: 
+			try: 
+				sock.sendto(json.dumps(data), (UDP_IP, UDP_PORT))
+			except Exception as error:
+				logger.log("fail sending udp effect, reason: %s" % str(error))
 
 
 	def qq_postSpaceColor(self):
@@ -518,8 +575,10 @@ def run():
 
 		if player.playingVideo:
 				qqthreadCapture.playingVideo = True
+				qqthreadCapture.playingAudio = False
 		elif player.playingAudio:
 			qqthreadCapture.playingAudio = True
+			qqthreadCapture.playingVideo = False
 		else:
 			if (qqthreadCapture.playingVideo == True) or (qqthreadCapture.playingAudio == True):
 				qqthreadCapture.playingVideo = False
@@ -555,16 +614,16 @@ class loop(Thread):
 
 		while not(self.exit) :
 			waitTime = time.time() - waitTime
-			if self.playingVideo and (h.connected == True) and h.settings.enable:
+			if self.playingVideo and (h.connected == True) and h.settings.enable :
 				colorTime = time.time()
 				getAvgColor()
 				colorTime = time.time() -colorTime
 
 				sendTime = time.time()
-				if h.settings.protocol == 0:	#0 = TCP, 1 = UDP
+				if h.settings.protocol == 0 :	#0 = TCP, 1 = UDP
 					h.qq_postEffect()
 					logger.log('tcp')
-				else:	
+				else :	
 					h.qq_sendUDP()
 					logger.log('udp')
 				sendTime = time.time() - sendTime
@@ -577,8 +636,7 @@ class loop(Thread):
 				time.sleep(2)
 			waitTime = time.time()
 			xbmc.sleep(h.settings.delay)
-
-
+			#xbmc.sleep(1000)
 
 
 

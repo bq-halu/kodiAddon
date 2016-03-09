@@ -20,6 +20,7 @@ class settings():
 		self.enable					= __addon__.getSetting("enable") == "true"
 		self.protocol				= int(__addon__.getSetting("protocol"))
 		self.delay					= int(__addon__.getSetting("delay"))
+		self.rpi 					= __addon__.getSetting("rpi") == "true"
 
 	def update(self, **kwargs):
 		self.__dict__.update(**kwargs)
@@ -32,4 +33,4 @@ class settings():
 		'mode (0=fullscreen, 1=rightUpLeft) :%s\n' % str(self.mode) + 'Room %s, ' % str(self.playRoom) + \
 		'Effects intensity: %s\n' % str(self.effectsIntensity) + \
 		'Protocol (0=TCP, 1=UDP): %s, ' % str(self.protocol) + \
-		'Delay: %s' % str(self.delay)
+		'Delay: %s' % str(self.delay) + 'IsRpi: %s' % str(self.rpi)
