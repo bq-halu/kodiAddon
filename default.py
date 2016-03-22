@@ -157,9 +157,7 @@ class MyPlayer(xbmc.Player):
 			qqthreadCapture.playingAudio = True
 
 	def onPlayBackStopped(self):
-		qqthreadCapture.playingVideo = False
-		qqthreadCapture.playingAudio = False
-		if self.playingVideo:
+		if self.isPlayingVideo():
 			logger.log("Video stoped")
 		if self.isPlayingAudio():
 			logger.log("Audio stoped")
@@ -168,7 +166,7 @@ class MyPlayer(xbmc.Player):
 	def onPlayBackEnded(self):
 		qqthreadCapture.playingVideo = False
 		qqthreadCapture.playingAudio = False				
-		if self.playingVideo:
+		if self.isPlayingVideo():
 			logger.log("Video ended")
 		if self.isPlayingAudio():
 			logger.log("Audio ended")
