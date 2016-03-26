@@ -138,13 +138,14 @@ class MyPlayer(xbmc.Player):
 			#logger.log(self.getAvailableAudioStreams())
 
 	def onPlayBackPaused(self):
-		qqthreadCapture.playingVideo = False
-		qqthreadCapture.playingAudio = False
+
 		if self.isPlayingVideo():
 			logger.log("Video paused")
 		if self.isPlayingAudio():
 			logger.log("Audio paused")
-		#h.qq_postSpaceColor()
+		qqthreadCapture.playingVideo = False
+		qqthreadCapture.playingAudio = False
+		h.qq_postSpaceColor()
 
 	def onPlayBackResumed(self):
 		if self.isPlayingVideo():
@@ -161,15 +162,17 @@ class MyPlayer(xbmc.Player):
 			logger.log("Video stoped")
 		if self.isPlayingAudio():
 			logger.log("Audio stoped")
+		qqthreadCapture.playingVideo = False
+		qqthreadCapture.playingAudio = False
 		h.qq_postSpaceColor()
 
 	def onPlayBackEnded(self):
-		qqthreadCapture.playingVideo = False
-		qqthreadCapture.playingAudio = False				
 		if self.isPlayingVideo():
 			logger.log("Video ended")
 		if self.isPlayingAudio():
 			logger.log("Audio ended")
+		qqthreadCapture.playingVideo = False
+		qqthreadCapture.playingAudio = False
 		h.qq_postSpaceColor()
 
 
