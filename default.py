@@ -138,13 +138,14 @@ class MyPlayer(xbmc.Player):
 			#logger.log(self.getAvailableAudioStreams())
 
 	def onPlayBackPaused(self):
-		qqthreadCapture.playingVideo = False
-		qqthreadCapture.playingAudio = False
+
 		if self.isPlayingVideo():
 			logger.log("Video paused")
 		if self.isPlayingAudio():
 			logger.log("Audio paused")
-		#h.qq_postSpaceColor()
+		qqthreadCapture.playingVideo = False
+		qqthreadCapture.playingAudio = False
+		h.qq_postSpaceColor()
 
 	def onPlayBackResumed(self):
 		if self.isPlayingVideo():
@@ -177,6 +178,7 @@ class MyPlayer(xbmc.Player):
 
 def getAvgColor():
 	global maximo
+	global qqthreadCapture
 
 	r, g, b, w = 0, 0, 0, 0
 
@@ -194,8 +196,6 @@ def getAvgColor():
 		hThird = int(capture_height / 3)
 
 		capture.capture(capture_width, capture_height, xbmc.CAPTURE_FLAG_CONTINUOUS)
-		#capture.capture(capture_width, capture_height)
-		#capture.capture()
 		
 		espera = time.time()
 		while capture.getCaptureState() != xbmc.CAPTURE_STATE_DONE:
