@@ -202,7 +202,7 @@ def getAvgColor():
 			if not(qqthreadCapture.playingVideo):
 				logger.log("Not playing > do not capture!")
 				return
-			#time.sleep(0.001)
+			#xbmc.sleep(1)
 			if (time.time() - espera) > 8:
 				logger.log("estado:" + str(capture.getCaptureState()) + "done:" + str(xbmc.CAPTURE_STATE_DONE) + "working:" + str(xbmc.CAPTURE_STATE_WORKING) + "Failed:" + str(xbmc.CAPTURE_STATE_FAILED))
 				capture.capture(capture_width, capture_height, xbmc.CAPTURE_FLAG_CONTINUOUS)  
@@ -417,7 +417,7 @@ class Halu:
 						llega, address = s.recvfrom(4096)
 					except:
 						s.sendto("qq_discovery", (d["broadcast"], portDiscovery))
-						time.sleep(0.05)
+						xbmc.sleep(50)
 						continue
 					try:
 						jllega = json.loads(llega)
@@ -614,9 +614,10 @@ if ( __name__ == "__main__" ):
 	while not xbmc.abortRequested:
 
 		if player == None:
-			
 			player = MyPlayer()
-		xbmc.sleep(100)
+			logger.log("Player loaded")
+		else:	
+			xbmc.sleep(100)
 
 	logger.log("exiting capture thread")
 	qqthreadCapture.exit = True
