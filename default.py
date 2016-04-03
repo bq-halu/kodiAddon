@@ -98,30 +98,7 @@ logger.log("Kodi Halu, version: %s" % get_version())
 
 
 
-
-def rpiColor(r,g,b):
-
-	bl = min(r, g, b)	#white component
-	
-	rc = r - bl 			#pure color component
-	gc = g - bl
-	bc = b - bl
-
-	bl = bl * factorB
-	r = rc * factorR
-	g = gc * factorV
-	b = bc * factorA
-
-	return int(r + bl), int(g + bl), int(b + bl) 
-
-
-
-
-
-'''
 class MyPlayer(xbmc.Player):
-	duration = 0
-
 
 	def __init__(self):
 		xbmc.Player.__init__(self)
@@ -138,18 +115,18 @@ class MyPlayer(xbmc.Player):
 			#logger.log(self.getAvailableAudioStreams())
 
 	def onPlayBackPaused(self):
-
+		qqthreadCapture.playingVideo = False
+		qqthreadCapture.playingAudio = False
 		if self.isPlayingVideo():
 			logger.log("Video paused")
 		if self.isPlayingAudio():
 			logger.log("Audio paused")
-		qqthreadCapture.playingVideo = False
-		qqthreadCapture.playingAudio = False
+		xbmc.sleep(2000)
 		h.qq_postSpaceColor()
 
 	def onPlayBackResumed(self):
 		if self.isPlayingVideo():
-			logger.log("Video reumed")
+			logger.log("Video resumed")
 			qqthreadCapture.playingVideo = True
 			qqthreadCapture.playingAudio = False
 		if self.isPlayingAudio():
@@ -164,6 +141,7 @@ class MyPlayer(xbmc.Player):
 			logger.log("Video stoped")
 		if self.isPlayingAudio():
 			logger.log("Audio stoped")
+		xbmc.sleep(2000)
 		h.qq_postSpaceColor()
 
 	def onPlayBackEnded(self):
@@ -173,8 +151,10 @@ class MyPlayer(xbmc.Player):
 			logger.log("Video ended")
 		if self.isPlayingAudio():
 			logger.log("Audio ended")
+		xbmc.sleep(2000)
 		h.qq_postSpaceColor()
-'''
+
+
 
 def getAvgColor():
 	global maximo
@@ -203,9 +183,9 @@ def getAvgColor():
 				logger.log("Not playing > do not capture!")
 				return False
 			#xbmc.sleep(1)
-			if (time.time() - espera) > 4:
+			if (time.time() - espera) > 2:
 				#logger.log("estado:" + str(capture.getCapureState()) + "done:" + str(xbmc.CAPTURE_STATE_DONE) + "working:" + str(xbmc.CAPTURE_STATE_WORKING) + "Failed:" + str(xbmc.CAPTURE_STATE_FAILED))
-				if qqthreadCapture.playingVideo or not(qqthreadCapture.exit):
+				if qqthreadCapture.playingVideo :
 					capture.capture(capture_width, capture_height, xbmc.CAPTURE_FLAG_CONTINUOUS)  
 					logger.log("long waiting for capture done, asking again")
 					espera = time.time()
@@ -243,8 +223,6 @@ def getAvgColor():
 			rgbw[0][0] = r / size
 			rgbw[0][1] = g / size
 			rgbw[0][2] = b / size
-			if h.settings.rpi:
-				rgbw[0][0], rgbw[0][1], rgbw[0][2] = rpiColor(rgbw[0][0], rgbw[0][1], rgbw[0][2])
 
 			rgbw[0][3] = min(rgbw[0][0], rgbw[0][1], rgbw[0][2]) / 4
 			#logger.log("RGB["+ str(r) + ',' + str(g) + ',' + str(b) + '], rgbw[0]='+ str(rgbw[0]) + 'size: ' + str(size) )
@@ -295,12 +273,6 @@ def getAvgColor():
 					rgbw[2][1] += g 	#right
 					rgbw[2][2] += b
 			
-			#logger.log("rgbw="+ str(rgbw))		
-			if h.settings.rpi:
-				rgbw[0][0], rgbw[0][1], rgbw[0][2] = rpiColor(rgbw[0][0], rgbw[0][1], rgbw[0][2])
-				rgbw[1][0], rgbw[1][1], rgbw[1][2] = rpiColor(rgbw[1][0], rgbw[1][1], rgbw[1][2])
-				rgbw[2][0], rgbw[2][1], rgbw[2][2] = rpiColor(rgbw[2][0], rgbw[2][1], rgbw[2][2])
-			#logger.log("RPIrgbw="+ str(rgbw))
 			rgbw[0][0] = rgbw[0][0] / z1
 			rgbw[0][1] = rgbw[0][1] / z1
 			rgbw[0][2] = rgbw[0][2] / z1
@@ -321,8 +293,8 @@ def getAvgColor():
 			#logger.log("End values: " + str(rgbw))
 
 		#logger.log(rgbw[0])
-
-	return True
+		return True
+	return False
 
 
 
@@ -500,8 +472,9 @@ class Halu:
 				logger.log("fail on POST: %s" % str(error))
 				logger.log("url: %s" % urlEffect)
 				logger.log("data: %s" % data)
-		
-		return
+				return False
+			return True
+		return False
 
 
 
@@ -527,10 +500,13 @@ class Halu:
 				sock.sendto(json.dumps(data), (UDP_IP, UDP_PORT))
 			except Exception as error:
 				logger.log("fail sending udp effect, reason: %s" % str(error))
+				return False
+			return True
+		return False
 
 
 	def qq_postSpaceColor(self):
-
+		
 		if self.settings.enable:
 		
 			logger.log("sending space commad for idle state.")
@@ -563,7 +539,7 @@ class loop(Thread):
 		''' Constructor. '''
 		Thread.__init__(self)
 		#self.playingVideo = False
-		self.playingVideo = True
+		self.playingVideo = False
 		self.playingAudio = False
 
 		self.exit = False
@@ -572,37 +548,40 @@ class loop(Thread):
 		global waitTime
 		global img
 		method = 'None'
+		sent = False
 
-		while not(self.exit) :
+		while not(self.exit):
 			waitTime = time.time() - waitTime
-			if (h.connected == True) and h.settings.enable :
+			if (h.connected == True) and h.settings.enable and qqthreadCapture.playingVideo:
 				colorTime = time.time()
 				if getAvgColor():
 					colorTime = time.time() - colorTime
-
 					sendTime = time.time()
 					if self.playingVideo :
 						if h.settings.protocol == 0 :	#0 = TCP, 1 = UDP
-							h.qq_postEffect()
+							sent = h.qq_postEffect()
 							method ='tcp'
 						else :	
-							h.qq_sendUDP()
+							sent = h.qq_sendUDP()
 							method = 'udp'
-						sendTime = time.time() - sendTime
-						seconds = waitTime + colorTime + sendTime 
-						logger.log(method + "FPS:{0}".format(1/seconds) + " waitTime:" + str(waitTime) + " ColorTime:" + str(colorTime) + " PostTime:" + str(sendTime))
+						if sent :
+							sendTime = time.time() - sendTime
+							seconds = waitTime + colorTime + sendTime 
+							logger.log(method + "FPS:{0}".format(1/seconds) + " waitTime:" + str(waitTime) + " ColorTime:" + str(colorTime) + " PostTime:" + str(sendTime))
+						else:
+							logger.log("color msj not sent.")
 					elif self.playingAudio :
 						logger.log("audio playing")
 						xbmc.sleep(2000)
 				else:
 					logger.log('getAvgColor() fails, so do not send')
+					xbmc.sleep(2000)
 			else:
 				xbmc.sleep(2000)
+				logger.log('no need to get color.')
+
 			waitTime = time.time()
 			xbmc.sleep(h.settings.delay)
-
-
-
 
 
 logger.log("Halu init!!")
@@ -618,16 +597,11 @@ if ( __name__ == "__main__" ):
 	qqthreadCapture.start()
 	last = datetime.datetime.now()
 	while not xbmc.abortRequested:
-		xbmc.sleep(1000)
-		logger.log('not launching Myplayer')
-		'''
 		if player == None:
 			player = MyPlayer()
 			logger.log("Player loaded")
-			xbmc.sleep(100)
-		else:	
-			xbmc.sleep(100)
-		'''
+		xbmc.sleep(1000)
+		
 	logger.log("exiting capture thread")
 	qqthreadCapture.exit = True
 	xbmc.sleep(200)
